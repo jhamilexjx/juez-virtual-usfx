@@ -1,0 +1,3 @@
+[submodule "vendor/domjudge"]
+	path = vendor/domjudge
+	url = https://github.com/DOMjudge/domjudge.git
