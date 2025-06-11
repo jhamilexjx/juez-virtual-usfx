@@ -1,0 +1,56 @@
+services:
+  mariadb:
+    image: docker.io/mariadb:10.6
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:13306:3306"
+    command:
+      - --max-connections=1000
+      - --max-allowed-packet=512M
+      - --innodb_snapshot_isolation=OFF
+    volumes:
+      - db_data:/var/lib/mysql
+
+  redis:
+    image: docker.io/redis:6-alpine
+    # No expongas Redis al host si ya tienes uno corriendo ahí:
+    # ports:
+    #   - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+
+  domserver:
+    image: docker.io/domjudge/domserver:latest
+    hostname: domjudge-server
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+      - redis
+    # Exponemos el puerto interno 80 en el 86 de tu máquina:
+    ports:
+      - "86:80"
+    volumes:
+      - ./theme:/opt/domjudge/domserver/templates/theme/custom:cached
+      - ./:/opt/domjudge/vendor/domjudge:cached
+    working_dir: /opt/domjudge/vendor/domjudge
+    privileged: true
+    cgroup: host
+
+  judgehost:
+    image: docker.io/domjudge/judgehost:latest
+    hostname: domjudge-judgehost
+    env_file:
+      - .env
+    depends_on:
+      - domserver
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup
+      - /chroot
+    working_dir: /opt/domjudge/vendor/domjudge
+
+volumes:
+  db_data:
+  redis_data:
